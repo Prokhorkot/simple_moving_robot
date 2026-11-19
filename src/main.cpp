@@ -1,27 +1,41 @@
 #include <ncurses.h>
 
+#include <optional>
+
 #include "robot.hpp"
 #include "playground.hpp"
 
 
 int main() {
-    moving_robot::Playground playground{10, 10};
-    moving_robot::Robot robot;
+    moving_robot::Playground playground{100, 100};
+    moving_robot::Robot robot{10};
     
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
 
-    mvprintw(0, 0, "Robot position: (%2d, %2d)  [q to quit]", 
-        robot.get_coords().x, robot.get_coords().y);
-    refresh();
+    const int pad_y = 1;
+    const moving_robot::Position initial_position = robot.get_coords();
+    moving_robot::MoveResult move_result{
+        .position = initial_position,
+        .previous_position = initial_position,
+        .expired_tail = std::nullopt,
+    };
 
-    while(true) {
-        moving_robot::Position position = robot.get_coords();
+    while (true) {
+        const moving_robot::Position& position = move_result.position;
+        const std::optional<moving_robot::Position>& expired_tail = move_result.expired_tail;
 
-        mvprintw(0, 17, "%2d", position.x);
-        mvprintw(0, 21, "%2d", position.y);
+        if (expired_tail) {
+            mvaddch(expired_tail->y + pad_y, expired_tail->x, ' ');
+        }
+
+        const moving_robot::Position& previous = move_result.previous_position;
+        mvaddch(previous.y + pad_y, previous.x, '.');
+        mvaddch(position.y + pad_y, position.x, 'R');
+        mvprintw(0, 0, "Robot position: (%2d, %2d)  [q to quit]", position.x, position.y);
+        move(position.y + pad_y, position.x);
         refresh();
 
         const int key = getch();
@@ -31,10 +45,10 @@ int main() {
 
         switch (key)
         {
-            case KEY_UP: position = robot.try_move(moving_robot::Directions::Up, playground); break;
-            case KEY_LEFT: position = robot.try_move(moving_robot::Directions::Left, playground); break;
-            case KEY_DOWN: position = robot.try_move(moving_robot::Directions::Down, playground); break;
-            case KEY_RIGHT: position = robot.try_move(moving_robot::Directions::Right, playground); break;
+            case KEY_UP: move_result = robot.try_move(moving_robot::Directions::Up, playground); break;
+            case KEY_LEFT: move_result = robot.try_move(moving_robot::Directions::Left, playground); break;
+            case KEY_DOWN: move_result = robot.try_move(moving_robot::Directions::Down, playground); break;
+            case KEY_RIGHT: move_result = robot.try_move(moving_robot::Directions::Right, playground); break;
         }
     }
     endwin();

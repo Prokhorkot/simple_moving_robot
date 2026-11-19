@@ -1,5 +1,5 @@
 #pragma once
-#include "robot.hpp"
+#include "position.hpp"
 
 namespace moving_robot {
     struct PlaygroundSize {
