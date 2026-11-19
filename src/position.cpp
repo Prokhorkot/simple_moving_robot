@@ -8,7 +8,11 @@ namespace moving_robot {
                    + std::to_string(position.y) + ")";
     }
 
-    Position Position::operator+(Directions direction) {
+    bool Position::operator==(const Position&) const = default;
+    bool Position::operator!=(const Position&) const = default;
+    
+
+    Position Position::operator+(Directions direction) const {
         constexpr std::array offsets{
             Position{ 0, -1},  // Up
             Position{-1,  0},  // Left

@@ -7,7 +7,11 @@ namespace moving_robot {
     MoveResult Robot::try_move(Directions direction, const Playground& playground) {
         const Position prev = coords_;
         coords_ = playground.clip_to_bounds(coords_ + direction);
-        std::optional<Position> expired = tail_.append(prev);
+
+        std::optional<Position> expired;
+        if (prev != coords_) {
+            expired = tail_.append(prev);
+        }
 
         return MoveResult{
             .position = coords_,
