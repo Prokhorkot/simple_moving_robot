@@ -1,14 +1,14 @@
 #pragma once
 
+#include <concepts>
 #include <deque>
+#include <functional>
 #include <optional>
 
 #include "directions.hpp"
 #include "position.hpp"
 
 namespace moving_robot {
-    class Playground;
-
     struct MoveResult {
         Position position;
         Position previous_position;
@@ -27,7 +27,24 @@ namespace moving_robot {
     class Robot {
         public:
             Robot(uint tail_size): tail_{tail_size} {};
-            MoveResult try_move(Directions direction, const Playground& playground);
+            template<typename F>
+            requires std::predicate<F&, const int&, const int&>
+            MoveResult try_move(Directions direction, F&& is_free) {
+                const Position previous = coords_;
+                const Position next = previous + direction;
+                std::optional<Position> expired;
+
+                if (is_free(next.x, next.y)) {
+                    expired = tail_.append(previous);
+                    coords_ = next;
+                }
+
+                return MoveResult{
+                    .position = coords_,
+                    .previous_position = previous,
+                    .expired_tail = expired,
+                };
+            }
             Position get_coords() { return coords_; };
 
         private:

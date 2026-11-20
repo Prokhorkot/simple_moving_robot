@@ -20,7 +20,7 @@ namespace moving_robot {
             Position{ 1,  0},  // Right
         };
 
-        const auto offset = offsets.at(static_cast<int>(direction));
+        const Position offset = offsets.at(static_cast<int>(direction));
         return {x + offset.x, y + offset.y};
     }
 }
