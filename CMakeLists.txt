@@ -4,9 +4,10 @@ project(moving_robot LANGUAGES CXX)
 
 add_executable(moving_robot
     src/main.cpp
-    src/playground.cpp
     src/position.cpp
+    src/renderer.cpp
     src/robot.cpp
+    src/vision_info.cpp
 )
 
 
