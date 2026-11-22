@@ -12,3 +12,9 @@
 /app
 /moving_robot
 /.vscode/
+
+# Local environments and backup files
+/.venv/
+__pycache__/
+/CMakeLists copy.txt
+*~

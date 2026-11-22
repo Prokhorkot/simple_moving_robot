@@ -8,7 +8,8 @@ class Renderer {
     public:
         void draw_frame(
             const PlaygroundSnapshot& snapshot,
-            const std::function<ObjectType(ObjectID)>& object_type
+            const std::function<ObjectType(ObjectID)>& object_type,
+            const char* status = "[q to quit]"
         ) const;
 
     private:

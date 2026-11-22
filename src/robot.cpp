@@ -11,6 +11,7 @@ Position Robot::preferred_spawn() const {
 Robot::InputResult Robot::handle_input(int key) const {
     switch (key) {
         case 'q':
+        case 'Q':
         case '\x1b':
             return {false, std::nullopt};
         case KEY_UP: return {true, Directions::Up};

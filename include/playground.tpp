@@ -65,8 +65,9 @@ bool Playground<Width, Height>::is_free(int x, int y) const {
 }
 
 template <int Width, int Height>
-void Playground<Width, Height>::next_tick() {
+bool Playground<Width, Height>::next_tick() {
     const std::lock_guard<std::mutex> lock(actions_mutex);
+    const bool had_commands = !command_queue_.empty();
 
     std::vector<Occupant> snapshot;
     snapshot.reserve(world_.size());
@@ -76,7 +77,8 @@ void Playground<Width, Height>::next_tick() {
 
     std::vector<Occupant> next_occupants = snapshot;
     execute_commands(snapshot, next_occupants);
-    update_grid(next_occupants);
+    const bool trail_changed = update_grid(next_occupants);
+    return had_commands || trail_changed;
 }
 
 template <int Width, int Height>
@@ -105,21 +107,26 @@ void Playground<Width, Height>::execute_commands(
 }
 
 template <int Width, int Height>
-void Playground<Width, Height>::update_grid(const std::vector<Occupant>& next_occupants) {
+bool Playground<Width, Height>::update_grid(const std::vector<Occupant>& next_occupants) {
     for (std::size_t cell = 0; cell < world_.size(); ++cell) {
         world_[cell].occupant = next_occupants[cell];
     }
     if (max_traceback_ <= 0) {
-        return;
+        return false;
     }
+    bool trail_changed = false;
     for (Cell& cell : world_) {
         if (cell.occupant) {
             cell.visits.try_emplace(*cell.occupant, max_traceback_);
         }
         for (std::pair<const ObjectID, VisionInfo>& visit : cell.visits) {
+            const bool was_trail = visit.second.last_visited() > 0;
             visit.second.update(cell.occupant == visit.first);
+            const bool is_trail = visit.second.last_visited() > 0;
+            trail_changed |= was_trail != is_trail;
         }
     }
+    return trail_changed;
 }
 
 template <int Width, int Height>

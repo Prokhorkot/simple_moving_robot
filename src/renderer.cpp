@@ -6,7 +6,8 @@
 
 void Renderer::draw_frame(
     const PlaygroundSnapshot& snapshot,
-    const std::function<ObjectType(ObjectID)>& object_type
+    const std::function<ObjectType(ObjectID)>& object_type,
+    const char* status
 ) const {
     constexpr int pad_y = 1;
     int rows;
@@ -28,7 +29,7 @@ void Renderer::draw_frame(
             }
         }
     }
-    mvaddstr(0, 0, "[q to quit]");
+    mvaddstr(0, 0, status);
     refresh();
 }
 

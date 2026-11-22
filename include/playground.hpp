@@ -24,7 +24,7 @@ class Playground {
         ObjectID register_robot(const Robot& robot);
         bool move_robot(ObjectID robot_id, Directions delta);
         bool is_free(int x, int y) const;
-        void next_tick();
+        bool next_tick();
         PlaygroundSnapshot snapshot() const;
         ObjectType object_type(ObjectID id) const;
         std::optional<Position> robot_position(ObjectID robot_id) const;
@@ -49,7 +49,7 @@ class Playground {
             const std::vector<Occupant>& snapshot,
             std::vector<Occupant>& next_occupants
         );
-        void update_grid(const std::vector<Occupant>& next_occupants);
+        bool update_grid(const std::vector<Occupant>& next_occupants);
         bool contains(int x, int y) const;
         bool is_free_unlocked(int x, int y) const;
         std::size_t index(int x, int y) const;

@@ -5,22 +5,10 @@
 #include "playground.hpp"
 #include "renderer.hpp"
 #include "robot.hpp"
-
-class Terminal {
-    public:
-        Terminal() {
-            initscr();
-            cbreak();
-            noecho();
-            keypad(stdscr, TRUE);
-        }
-        ~Terminal() { endwin(); }
-};
+#include "terminal.hpp"
 
 namespace {
-    constexpr int width = 100;
-    constexpr int height = 100;
-    using ConsolePlayground = Playground<width, height>;
+    using ConsolePlayground = Playground<MOVING_ROBOT_PLAYGROUND_WIDTH, MOVING_ROBOT_PLAYGROUND_HEIGHT>;
 
     bool handle_input(ConsolePlayground& playground, ObjectID robot_id) {
         const int key = getch();
