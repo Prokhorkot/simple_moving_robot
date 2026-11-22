@@ -6,8 +6,6 @@
 #include "renderer.hpp"
 #include "robot.hpp"
 
-using namespace moving_robot;
-
 class Terminal {
     public:
         Terminal() {
@@ -26,7 +24,7 @@ namespace {
 
     bool handle_input(ConsolePlayground& playground, ObjectID robot_id) {
         const int key = getch();
-        if (key == 'q' || key == '\x1b' || key == ERR) {
+        if (key == 'q' || key == '\x1b') {
             return false;
         }
 

@@ -1,14 +1,21 @@
 #pragma once
 
+#include <optional>
+
+#include "directions.hpp"
 #include "position.hpp"
 
-namespace moving_robot {
-    class Robot {
-        public:
-            explicit Robot(Position preferred_spawn = {0, 0});
-            Position preferred_spawn() const;
+class Robot {
+    public:
+        struct InputResult {
+            bool keep_running;
+            std::optional<Directions> direction;
+        };
 
-        private:
-            Position preferred_spawn_;
-    };
-}
+        explicit Robot(Position preferred_spawn = {0, 0});
+        Position preferred_spawn() const;
+        InputResult handle_input(int key) const;
+
+    private:
+        Position preferred_spawn_;  
+};

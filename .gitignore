@@ -1,5 +1,7 @@
-# CMake build artifacts
+# CMake and colcon build artifacts
 /build/
+/install/
+/log/
 /cmake-build-*/
 /CMakeCache.txt
 /CMakeFiles/
