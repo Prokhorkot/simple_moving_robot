@@ -14,16 +14,37 @@ Registration uses the `/playground/register_robot` service. Movement commands us
 
 ## Build
 
-The project was tested on Ubuntu 26.04 with ROS 2 Lyrical. You'll need a C++20 compiler, CMake, `colcon`, the ROS 2 C++ and interface-generation tools, and the ncurses development headers (`libncurses-dev` on Ubuntu).
+### Requirements
 
-From the repository root:
+- **ROS 2 Lyrical Luth**. This project was tested with Lyrical on Ubuntu 26.04 LTS.
+- **C++20**. Use a compiler that supports C++20. The project's CMake configuration selects this standard automatically.
+- CMake 3.20 or newer, `colcon`, the ROS 2 C++ and interface-generation tools, and the ncurses development headers (`libncurses-dev` on Ubuntu).
+
+### Linux (Ubuntu 26.04 LTS)
+
+Install [ROS 2 Lyrical and its development tools](https://docs.ros.org/en/lyrical/Get-Started/Installation/Ubuntu-Install-Debs.html). Then run these commands from the repository root:
 
 ```bash
+sudo apt install libncurses-dev
 source /opt/ros/lyrical/setup.bash
 colcon build --paths . --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 ```
 
 Use the corresponding `setup.zsh` script instead if you use Zsh. The explicit Python path keeps ROS interface generation on the system interpreter when a different Python is active.
+
+### Windows (WSL 2)
+
+Use [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) with Ubuntu 26.04 LTS. The project uses ncurses, and a native Windows build is not configured. In PowerShell, use `wsl --list --online` to find the Ubuntu 26.04 distribution name, then install it with `wsl --install -d <distribution-name>`.
+
+Open the Ubuntu terminal in WSL, install [ROS 2 Lyrical and its development tools](https://docs.ros.org/en/lyrical/Get-Started/Installation/Ubuntu-Install-Debs.html) there, and clone the repository inside the Ubuntu filesystem. From the repository root in the WSL terminal:
+
+```bash
+sudo apt install libncurses-dev
+source /opt/ros/lyrical/setup.bash
+colcon build --paths . --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
+```
+
+Run the nodes from Ubuntu terminals inside WSL as well.
 
 ## Run
 

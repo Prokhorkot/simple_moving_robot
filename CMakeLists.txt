@@ -15,6 +15,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}_interfaces
     "msg/MoveCommand.msg"
+    "msg/DeleteRobot.msg"
     "msg/GridCell.msg"
     "msg/GridSnapshot.msg"
     "srv/RegisterRobot.srv"

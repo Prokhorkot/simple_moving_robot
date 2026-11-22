@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 
+#include "moving_robot/msg/delete_robot.hpp"
 #include "moving_robot/msg/grid_snapshot.hpp"
 #include "moving_robot/msg/move_command.hpp"
 #include "moving_robot/srv/register_robot.hpp"
@@ -12,6 +13,7 @@
 #include "robot.hpp"
 
 namespace {
+    using DeleteRobot = moving_robot::msg::DeleteRobot;
     using GridSnapshot = moving_robot::msg::GridSnapshot;
     using MoveCommand = moving_robot::msg::MoveCommand;
     using RegisterRobot = moving_robot::srv::RegisterRobot;
@@ -28,6 +30,9 @@ namespace {
                 move_subscription_ = create_subscription<MoveCommand>(
                     "robot/move", 10,
                     std::bind(&PlaygroundNode::handle_move, this, _1));
+                delete_subscription_ = create_subscription<DeleteRobot>(
+                    "robot/delete", 10,
+                    std::bind(&PlaygroundNode::handle_delete, this, _1));
                 grid_publisher_ = create_publisher<GridSnapshot>("playground/grid", 10);
                 tick_timer_ = create_wall_timer(
                     std::chrono::milliseconds{20},
@@ -36,10 +41,18 @@ namespace {
 
         private:
             void next_tick() {
-                if (!playground_.next_tick()) {
-                    return;
+                if (playground_.next_tick()) {
+                    publish_grid();
                 }
+            }
 
+            void handle_delete(DeleteRobot::ConstSharedPtr message) {
+                if (playground_.remove_robot(message->robot_id)) {
+                    publish_grid();
+                }
+            }
+
+            void publish_grid() {
                 const PlaygroundSnapshot snapshot = playground_.snapshot();
                 GridSnapshot message;
                 message.width = snapshot.width;
@@ -75,6 +88,7 @@ namespace {
             Playground<Width, Height> playground_;
             rclcpp::Service<RegisterRobot>::SharedPtr register_service_;
             rclcpp::Subscription<MoveCommand>::SharedPtr move_subscription_;
+            rclcpp::Subscription<DeleteRobot>::SharedPtr delete_subscription_;
             rclcpp::Publisher<GridSnapshot>::SharedPtr grid_publisher_;
             rclcpp::TimerBase::SharedPtr tick_timer_;
     };

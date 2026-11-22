@@ -2,9 +2,9 @@
 
 #include <array>
 #include <cstddef>
+#include <deque>
 #include <mutex>
 #include <optional>
-#include <queue>
 #include <unordered_map>
 #include <vector>
 
@@ -22,6 +22,7 @@ class Playground {
         explicit Playground(int max_traceback = 5);
         Position clip_to_bounds(Position position) const;
         ObjectID register_robot(const Robot& robot);
+        bool remove_robot(ObjectID robot_id);
         bool move_robot(ObjectID robot_id, Directions delta);
         bool is_free(int x, int y) const;
         bool next_tick();
@@ -59,7 +60,8 @@ class Playground {
         int max_traceback_;
         std::array<Cell, cell_count> world_{};
         std::unordered_map<ObjectID, Position> position_by_objectid;
-        std::queue<MoveCommand> command_queue_;
+        ObjectID last_robot_id_ = 0;
+        std::deque<MoveCommand> command_queue_;
 };
 
 #include "playground.tpp"

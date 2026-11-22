@@ -34,18 +34,35 @@ ObjectID Playground<Width, Height>::register_robot(const Robot& robot) {
         } while (!is_free_unlocked(start.x, start.y));
     }
 
-    ObjectID max_id = 0;
-    for (const std::pair<const ObjectID, Position>& entry : position_by_objectid) {
-        max_id = std::max(max_id, entry.first);
-    }
-    if (max_id == std::numeric_limits<ObjectID>::max()) {
+    if (last_robot_id_ == std::numeric_limits<ObjectID>::max()) {
         return -1;
     }
 
-    const ObjectID id = max_id + 1;
+    const ObjectID id = last_robot_id_ + 1;
     position_by_objectid.emplace(id, start);
+    last_robot_id_ = id;
     world_[index(start.x, start.y)].occupant = id;
     return id;
+}
+
+template <int Width, int Height>
+bool Playground<Width, Height>::remove_robot(ObjectID robot_id) {
+    const std::lock_guard<std::mutex> lock(actions_mutex);
+    const auto robot = position_by_objectid.find(robot_id);
+    if (robot == position_by_objectid.end()) {
+        return false;
+    }
+
+    const Position position = robot->second;
+    world_[index(position.x, position.y)].occupant.reset();
+    position_by_objectid.erase(robot);
+    for (Cell& cell : world_) {
+        cell.visits.erase(robot_id);
+    }
+    std::erase_if(command_queue_, [robot_id](const MoveCommand& command) {
+        return command.robot_id == robot_id;
+    });
+    return true;
 }
 
 template <int Width, int Height>
@@ -54,7 +71,7 @@ bool Playground<Width, Height>::move_robot(ObjectID robot_id, Directions delta) 
     if (!position_by_objectid.contains(robot_id)) {
         return false;
     }
-    command_queue_.push(MoveCommand{robot_id, delta});
+    command_queue_.push_back(MoveCommand{robot_id, delta});
     return true;
 }
 
@@ -88,7 +105,7 @@ void Playground<Width, Height>::execute_commands(
 ) {
     while (!command_queue_.empty()) {
         const MoveCommand command = command_queue_.front();
-        command_queue_.pop();
+        command_queue_.pop_front();
         Position& position = position_by_objectid.at(command.robot_id);
         const Position next = position + command.direction;
         if (!contains(next.x, next.y)) {

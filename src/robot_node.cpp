@@ -7,6 +7,7 @@
 
 #include <ncurses.h>
 
+#include "moving_robot/msg/delete_robot.hpp"
 #include "moving_robot/msg/move_command.hpp"
 #include "moving_robot/srv/register_robot.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -16,6 +17,7 @@
 #include "terminal.hpp"
 
 namespace {
+    using DeleteRobot = moving_robot::msg::DeleteRobot;
     using MoveCommand = moving_robot::msg::MoveCommand;
     using RegisterRobot = moving_robot::srv::RegisterRobot;
 
@@ -25,9 +27,23 @@ namespace {
                 : rclcpp::Node("robot"),
                   robot_{position},
                   registration_client_{create_client<RegisterRobot>("/playground/register_robot")},
-                  move_publisher_{create_publisher<MoveCommand>("robot/move", 10)} {
+                  move_publisher_{create_publisher<MoveCommand>("robot/move", 10)},
+                  delete_publisher_{create_publisher<DeleteRobot>("robot/delete", 10)} {
                 if (!register_with_playground()) {
                     throw std::runtime_error("Robot registration failed");
+                }
+            }
+
+            ~RobotNode() override {
+                if (!robot_id_ || !rclcpp::ok()) {
+                    return;
+                }
+                try {
+                    DeleteRobot message;
+                    message.robot_id = *robot_id_;
+                    delete_publisher_->publish(message);
+                    delete_publisher_->wait_for_all_acked(std::chrono::milliseconds{200});
+                } catch (const std::exception&) {
                 }
             }
 
@@ -47,6 +63,7 @@ namespace {
             Robot robot_;
             rclcpp::Client<RegisterRobot>::SharedPtr registration_client_;
             rclcpp::Publisher<MoveCommand>::SharedPtr move_publisher_;
+            rclcpp::Publisher<DeleteRobot>::SharedPtr delete_publisher_;
             std::optional<std::int32_t> robot_id_;
 
             void publishMove(Directions direction) {
