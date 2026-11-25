@@ -71,7 +71,7 @@ namespace {
                 if (command->direction > static_cast<unsigned int>(Directions::Right)) {
                     return;
                 }
-                playground_.move_robot(
+                playground_.queue_robot_move(
                     command->robot_id, static_cast<Directions>(command->direction));
             }
 

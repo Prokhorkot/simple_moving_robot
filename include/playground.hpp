@@ -23,13 +23,13 @@ class Playground {
         Position clip_to_bounds(Position position) const;
         ObjectID register_robot(const Robot& robot);
         bool remove_robot(ObjectID robot_id);
-        bool move_robot(ObjectID robot_id, Directions delta);
+        bool queue_robot_move(ObjectID robot_id, Directions delta);
         bool is_free(int x, int y) const;
         bool next_tick();
         PlaygroundSnapshot snapshot() const;
-        ObjectType object_type(ObjectID id) const;
+        bool is_registered_robot(ObjectID robot_id) const;
         std::optional<Position> robot_position(ObjectID robot_id) const;
-        int last_visited(ObjectID robot_id, const Position& position) const;
+        int robot_last_visited(ObjectID robot_id, const Position& position) const;
 
     private:
         mutable std::mutex actions_mutex;
@@ -38,15 +38,15 @@ class Playground {
 
         struct Cell {
             Occupant occupant;
-            std::unordered_map<ObjectID, VisionInfo> visits;
+            std::unordered_map<ObjectID, VisionInfo> robot_visits;
         };
 
-        struct MoveCommand {
+        struct RobotMoveCommand {
             ObjectID robot_id;
             Directions direction;
         };
 
-        void execute_commands(
+        void execute_robot_moves(
             const std::vector<Occupant>& snapshot,
             std::vector<Occupant>& next_occupants
         );
@@ -59,9 +59,9 @@ class Playground {
             static_cast<std::size_t>(Width) * static_cast<std::size_t>(Height);
         int max_traceback_;
         std::array<Cell, cell_count> world_{};
-        std::unordered_map<ObjectID, Position> position_by_objectid;
+        std::unordered_map<ObjectID, Position> robot_positions_;
         ObjectID last_robot_id_ = 0;
-        std::deque<MoveCommand> command_queue_;
+        std::deque<RobotMoveCommand> robot_move_queue_;
 };
 
 #include "playground.tpp"

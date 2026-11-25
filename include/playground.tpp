@@ -22,7 +22,7 @@ ObjectID Playground<Width, Height>::register_robot(const Robot& robot) {
     Position start = robot.preferred_spawn();
     if (!is_free_unlocked(start.x, start.y)) {
         // Each registered robot occupies exactly one cell.
-        if (position_by_objectid.size() >= world_.size()) {
+        if (robot_positions_.size() >= world_.size()) {
             return -1;
         }
 
@@ -39,7 +39,7 @@ ObjectID Playground<Width, Height>::register_robot(const Robot& robot) {
     }
 
     const ObjectID id = last_robot_id_ + 1;
-    position_by_objectid.emplace(id, start);
+    robot_positions_.emplace(id, start);
     last_robot_id_ = id;
     world_[index(start.x, start.y)].occupant = id;
     return id;
@@ -48,30 +48,30 @@ ObjectID Playground<Width, Height>::register_robot(const Robot& robot) {
 template <int Width, int Height>
 bool Playground<Width, Height>::remove_robot(ObjectID robot_id) {
     const std::lock_guard<std::mutex> lock(actions_mutex);
-    const auto robot = position_by_objectid.find(robot_id);
-    if (robot == position_by_objectid.end()) {
+    const auto robot = robot_positions_.find(robot_id);
+    if (robot == robot_positions_.end()) {
         return false;
     }
 
     const Position position = robot->second;
     world_[index(position.x, position.y)].occupant.reset();
-    position_by_objectid.erase(robot);
+    robot_positions_.erase(robot);
     for (Cell& cell : world_) {
-        cell.visits.erase(robot_id);
+        cell.robot_visits.erase(robot_id);
     }
-    std::erase_if(command_queue_, [robot_id](const MoveCommand& command) {
+    std::erase_if(robot_move_queue_, [robot_id](const RobotMoveCommand& command) {
         return command.robot_id == robot_id;
     });
     return true;
 }
 
 template <int Width, int Height>
-bool Playground<Width, Height>::move_robot(ObjectID robot_id, Directions delta) {
+bool Playground<Width, Height>::queue_robot_move(ObjectID robot_id, Directions delta) {
     const std::lock_guard<std::mutex> lock(actions_mutex);
-    if (!position_by_objectid.contains(robot_id)) {
+    if (!robot_positions_.contains(robot_id)) {
         return false;
     }
-    command_queue_.push_back(MoveCommand{robot_id, delta});
+    robot_move_queue_.push_back(RobotMoveCommand{robot_id, delta});
     return true;
 }
 
@@ -84,7 +84,7 @@ bool Playground<Width, Height>::is_free(int x, int y) const {
 template <int Width, int Height>
 bool Playground<Width, Height>::next_tick() {
     const std::lock_guard<std::mutex> lock(actions_mutex);
-    const bool had_commands = !command_queue_.empty();
+    const bool had_robot_moves = !robot_move_queue_.empty();
 
     std::vector<Occupant> snapshot;
     snapshot.reserve(world_.size());
@@ -93,20 +93,20 @@ bool Playground<Width, Height>::next_tick() {
     }
 
     std::vector<Occupant> next_occupants = snapshot;
-    execute_commands(snapshot, next_occupants);
+    execute_robot_moves(snapshot, next_occupants);
     const bool trail_changed = update_grid(next_occupants);
-    return had_commands || trail_changed;
+    return had_robot_moves || trail_changed;
 }
 
 template <int Width, int Height>
-void Playground<Width, Height>::execute_commands(
+void Playground<Width, Height>::execute_robot_moves(
     const std::vector<Occupant>& snapshot,
     std::vector<Occupant>& next_occupants
 ) {
-    while (!command_queue_.empty()) {
-        const MoveCommand command = command_queue_.front();
-        command_queue_.pop_front();
-        Position& position = position_by_objectid.at(command.robot_id);
+    while (!robot_move_queue_.empty()) {
+        const RobotMoveCommand command = robot_move_queue_.front();
+        robot_move_queue_.pop_front();
+        Position& position = robot_positions_.at(command.robot_id);
         const Position next = position + command.direction;
         if (!contains(next.x, next.y)) {
             continue;
@@ -134,9 +134,9 @@ bool Playground<Width, Height>::update_grid(const std::vector<Occupant>& next_oc
     bool trail_changed = false;
     for (Cell& cell : world_) {
         if (cell.occupant) {
-            cell.visits.try_emplace(*cell.occupant, max_traceback_);
+            cell.robot_visits.try_emplace(*cell.occupant, max_traceback_);
         }
-        for (std::pair<const ObjectID, VisionInfo>& visit : cell.visits) {
+        for (std::pair<const ObjectID, VisionInfo>& visit : cell.robot_visits) {
             const bool was_trail = visit.second.last_visited() > 0;
             visit.second.update(cell.occupant == visit.first);
             const bool is_trail = visit.second.last_visited() > 0;
@@ -153,7 +153,7 @@ PlaygroundSnapshot Playground<Width, Height>::snapshot() const {
     snapshot.cells.reserve(world_.size());
     for (const Cell& cell : world_) {
         CellSnapshot& copied_cell = snapshot.cells.emplace_back(CellSnapshot{cell.occupant, {}});
-        for (const std::pair<const ObjectID, VisionInfo>& visit : cell.visits) {
+        for (const std::pair<const ObjectID, VisionInfo>& visit : cell.robot_visits) {
             if (visit.second.last_visited() > 0) {
                 copied_cell.trail_robot_ids.push_back(visit.first);
             }
@@ -163,32 +163,32 @@ PlaygroundSnapshot Playground<Width, Height>::snapshot() const {
 }
 
 template <int Width, int Height>
-ObjectType Playground<Width, Height>::object_type(ObjectID id) const {
+bool Playground<Width, Height>::is_registered_robot(ObjectID robot_id) const {
     const std::lock_guard<std::mutex> lock(actions_mutex);
-    return position_by_objectid.contains(id) ? ObjectType::Robot : ObjectType::Unknown;
+    return robot_positions_.contains(robot_id);
 }
 
 template <int Width, int Height>
 std::optional<Position> Playground<Width, Height>::robot_position(ObjectID robot_id) const {
     const std::lock_guard<std::mutex> lock(actions_mutex);
     const std::unordered_map<ObjectID, Position>::const_iterator robot =
-        position_by_objectid.find(robot_id);
-    if (robot == position_by_objectid.end()) {
+        robot_positions_.find(robot_id);
+    if (robot == robot_positions_.end()) {
         return std::nullopt;
     }
     return robot->second;
 }
 
 template <int Width, int Height>
-int Playground<Width, Height>::last_visited(ObjectID robot_id, const Position& position) const {
+int Playground<Width, Height>::robot_last_visited(ObjectID robot_id, const Position& position) const {
     if (!contains(position.x, position.y)) {
         return -1;
     }
 
     const std::lock_guard<std::mutex> lock(actions_mutex);
     const Cell& cell = world_[index(position.x, position.y)];
-    const std::unordered_map<ObjectID, VisionInfo>::const_iterator visit = cell.visits.find(robot_id);
-    if (visit == cell.visits.end()) {
+    const std::unordered_map<ObjectID, VisionInfo>::const_iterator visit = cell.robot_visits.find(robot_id);
+    if (visit == cell.robot_visits.end()) {
         return -1;
     }
 

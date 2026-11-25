@@ -21,7 +21,7 @@ namespace {
             }
 
         private:
-            static ObjectType occupant_type(ObjectID) {
+            static ObjectType robot_occupant_type(ObjectID) {
                 return ObjectType::Robot;
             }
 
@@ -45,7 +45,7 @@ namespace {
                     output.trail_robot_ids.assign(
                         cell.trail_robot_ids.begin(), cell.trail_robot_ids.end());
                 }
-                renderer_.draw_frame(snapshot, &RendererNode::occupant_type, "[Ctrl+C to quit]");
+                renderer_.draw_frame(snapshot, &RendererNode::robot_occupant_type, "[Ctrl+C to quit]");
             }
 
             Renderer renderer_;
