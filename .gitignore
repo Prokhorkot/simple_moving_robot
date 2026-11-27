@@ -2,6 +2,9 @@
 /build/
 /install/
 /log/
+/build-humble/
+/install-humble/
+/log-humble/
 /cmake-build-*/
 /CMakeCache.txt
 /CMakeFiles/
