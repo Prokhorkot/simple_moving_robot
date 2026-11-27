@@ -36,20 +36,49 @@ Use the corresponding `setup.zsh` script instead if you use Zsh. The explicit Py
 
 Use ROS 2 Humble on Ubuntu 22.04 (Jammy). If your host runs a newer Ubuntu release, build in an Ubuntu 22.04 container or VM.
 
-Follow **Setup Sources** in the [ROS 2 Humble installation guide](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html) to configure the ROS apt repository. Then run these commands from the repository root in a shell with no other ROS distribution sourced.
+#### Install ROS 2 and build dependencies
+
+On a fresh Ubuntu 22.04 installation, update the system, enable Universe, and install the ROS 2 apt source package. These commands assume Bash. [ROS 2 Humble installation guide](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
 
 ```bash
+export LANG=C.UTF-8
+sudo apt update
+sudo apt upgrade
+sudo apt install ca-certificates curl git software-properties-common
+sudo add-apt-repository -y universe
+
+ros_apt_release_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+  https://github.com/ros-infrastructure/ros-apt-source/releases/latest)"
+ros_apt_version="${ros_apt_release_url##*/}"
+ros_apt_deb="$(mktemp --suffix=.deb)"
+curl -fsSL -o "$ros_apt_deb" \
+  "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ros_apt_version}/ros2-apt-source_${ros_apt_version}.jammy_all.deb"
+sudo dpkg -i "$ros_apt_deb"
+
 sudo apt update
 sudo apt install build-essential cmake python3-colcon-common-extensions \
   ros-humble-ros-base ros-humble-rosidl-default-generators libncurses-dev
+```
 
+#### Clone and build
+
+```bash
+git clone https://github.com/Prokhorkot/simple_moving_robot.git
+cd simple_moving_robot
 source /opt/ros/humble/setup.bash
 colcon --log-base log-humble build --paths . \
   --build-base build-humble --install-base install-humble \
   --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 ```
 
-The separate build directories keep the Humble build apart from other ROS builds. In each terminal you use to run a node, source `/opt/ros/humble/setup.bash` and then `install-humble/local_setup.bash`. Use the corresponding `.zsh` scripts if you use Zsh.
+The separate build directories keep the Humble build apart from other ROS builds. Before running a node, run these commands from the repository root in each terminal.
+
+```bash
+source /opt/ros/humble/setup.bash
+source install-humble/local_setup.bash
+```
+
+Then follow the [Run](#run) section. Use the corresponding `.zsh` setup scripts if you use Zsh.
 
 ### Windows (WSL 2)
 
@@ -76,8 +105,6 @@ ros2 run moving_robot robot_node
 ```
 
 Focus the `robot_node` terminal and press an arrow key. The renderer draws its first frame when it receives the first grid update. The robot is shown as `R` and its trail as `.`. Press `Q` or Escape to quit `robot_node`, and `Ctrl+C` to stop the other nodes.
-
-You can also run the standalone terminal version with `ros2 run moving_robot moving_robot`.
 
 ## License
 
