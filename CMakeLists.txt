@@ -29,7 +29,7 @@ find_package(Curses REQUIRED)
 add_library(playground_model STATIC
     src/position.cpp
     src/robot.cpp
-    src/vision_info.cpp
+    src/trail.cpp
 )
 target_include_directories(playground_model PUBLIC include PRIVATE ${CURSES_INCLUDE_DIRS})
 target_compile_features(playground_model PUBLIC cxx_std_20)
@@ -37,10 +37,6 @@ target_compile_definitions(playground_model PUBLIC
     MOVING_ROBOT_PLAYGROUND_WIDTH=${MOVING_ROBOT_PLAYGROUND_WIDTH}
     MOVING_ROBOT_PLAYGROUND_HEIGHT=${MOVING_ROBOT_PLAYGROUND_HEIGHT}
 )
-
-add_executable(moving_robot src/main.cpp src/renderer.cpp)
-target_include_directories(moving_robot PRIVATE ${CURSES_INCLUDE_DIRS})
-target_link_libraries(moving_robot PRIVATE playground_model rclcpp::rclcpp ${CURSES_LIBRARIES})
 
 add_executable(playground_node src/playground_node.cpp)
 target_link_libraries(playground_node PRIVATE
@@ -58,6 +54,6 @@ target_include_directories(renderer_node PRIVATE include ${CURSES_INCLUDE_DIRS})
 target_compile_features(renderer_node PRIVATE cxx_std_20)
 target_link_libraries(renderer_node PRIVATE rclcpp::rclcpp "${cpp_typesupport}" ${CURSES_LIBRARIES})
 
-install(TARGETS moving_robot playground_node robot_node renderer_node DESTINATION lib/${PROJECT_NAME})
+install(TARGETS playground_node robot_node renderer_node DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

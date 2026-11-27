@@ -6,7 +6,6 @@
 
 void Renderer::draw_frame(
     const PlaygroundSnapshot& snapshot,
-    const std::function<ObjectType(ObjectID)>& object_type,
     const char* status
 ) const {
     constexpr int pad_y = 1;
@@ -23,7 +22,7 @@ void Renderer::draw_frame(
         for (int x = 0; x < visible_width; ++x) {
             const CellSnapshot& cell = snapshot.cells[row + static_cast<std::size_t>(x)];
             if (cell.occupant) {
-                mvaddch(y + pad_y, x, symbol_for(object_type(*cell.occupant)));
+                mvaddch(y + pad_y, x, symbol_for(cell.occupant_type));
             } else if (!cell.trail_robot_ids.empty()) {
                 mvaddch(y + pad_y, x, '.');
             }
@@ -33,6 +32,11 @@ void Renderer::draw_frame(
     refresh();
 }
 
-char Renderer::symbol_for(ObjectType type) {
-    return type == ObjectType::Robot ? 'R' : '?';
+chtype Renderer::symbol_for(ObjectType type) {
+    switch (type) {
+        case ObjectType::Robot:
+            return has_colors() ? ('H' | COLOR_PAIR(1)) : 'H';
+        case ObjectType::Barrier: return '#';
+        default: return '?';
+    }
 }

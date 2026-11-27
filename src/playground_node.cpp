@@ -1,9 +1,11 @@
 #include <chrono>
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <memory>
 
 #include "moving_robot/msg/delete_robot.hpp"
+#include "moving_robot/msg/grid_cell.hpp"
 #include "moving_robot/msg/grid_snapshot.hpp"
 #include "moving_robot/msg/move_command.hpp"
 #include "moving_robot/srv/register_robot.hpp"
@@ -14,9 +16,14 @@
 
 namespace {
     using DeleteRobot = moving_robot::msg::DeleteRobot;
+    using GridCell = moving_robot::msg::GridCell;
     using GridSnapshot = moving_robot::msg::GridSnapshot;
     using MoveCommand = moving_robot::msg::MoveCommand;
     using RegisterRobot = moving_robot::srv::RegisterRobot;
+
+    static_assert(static_cast<std::uint8_t>(ObjectType::Unknown) == GridCell::TYPE_UNKNOWN);
+    static_assert(static_cast<std::uint8_t>(ObjectType::Robot) == GridCell::TYPE_ROBOT);
+    static_assert(static_cast<std::uint8_t>(ObjectType::Barrier) == GridCell::TYPE_BARRIER);
 
     template <int Width, int Height>
     class PlaygroundNode : public rclcpp::Node {
@@ -24,6 +31,7 @@ namespace {
             PlaygroundNode() : rclcpp::Node("playground") {
                 using std::placeholders::_1;
                 using std::placeholders::_2;
+
                 register_service_ = create_service<RegisterRobot>(
                     "playground/register_robot",
                     std::bind(&PlaygroundNode::handle_register_robot, this, _1, _2));
@@ -34,9 +42,13 @@ namespace {
                     "robot/delete", 10,
                     std::bind(&PlaygroundNode::handle_delete, this, _1));
                 grid_publisher_ = create_publisher<GridSnapshot>("playground/grid", 10);
+                round_ended_publisher_ = create_publisher<DeleteRobot>("/playground/round_ended", 10);
                 tick_timer_ = create_wall_timer(
                     std::chrono::milliseconds{20},
                     std::bind(&PlaygroundNode::next_tick, this));
+                grid_scroll_timer_ = create_wall_timer(
+                    std::chrono::seconds{1},
+                    std::bind(&PlaygroundNode::move_grid, this));
             }
 
         private:
@@ -44,6 +56,18 @@ namespace {
                 if (playground_.next_tick()) {
                     publish_grid();
                 }
+            }
+
+            void move_grid() {
+                const std::vector<ObjectID> failed_robots = playground_.move_grid();
+                if (!failed_robots.empty()) {
+                    for (const ObjectID robot_id: failed_robots) {
+                        DeleteRobot message;
+                        message.robot_id = robot_id;
+                        round_ended_publisher_->publish(message);
+                    }
+                }
+                publish_grid();
             }
 
             void handle_delete(DeleteRobot::ConstSharedPtr message) {
@@ -61,6 +85,7 @@ namespace {
                 for (const CellSnapshot& cell : snapshot.cells) {
                     auto& output = message.cells.emplace_back();
                     output.occupant_id = cell.occupant.value_or(0);
+                    output.occupant_type = static_cast<std::uint8_t>(cell.occupant_type);
                     output.trail_robot_ids.assign(
                         cell.trail_robot_ids.begin(), cell.trail_robot_ids.end());
                 }
@@ -85,12 +110,14 @@ namespace {
                 response->robot_id = id;
             }
 
-            Playground<Width, Height> playground_;
+            Playground<Width, Height> playground_{1, 0.05};
             rclcpp::Service<RegisterRobot>::SharedPtr register_service_;
             rclcpp::Subscription<MoveCommand>::SharedPtr move_subscription_;
             rclcpp::Subscription<DeleteRobot>::SharedPtr delete_subscription_;
             rclcpp::Publisher<GridSnapshot>::SharedPtr grid_publisher_;
             rclcpp::TimerBase::SharedPtr tick_timer_;
+            rclcpp::Publisher<DeleteRobot>::SharedPtr round_ended_publisher_;
+            rclcpp::TimerBase::SharedPtr grid_scroll_timer_;
     };
 
     using ConfiguredPlaygroundNode = PlaygroundNode<100, 100>;

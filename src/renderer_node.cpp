@@ -21,10 +21,6 @@ namespace {
             }
 
         private:
-            static ObjectType robot_occupant_type(ObjectID) {
-                return ObjectType::Robot;
-            }
-
             void draw_snapshot(GridSnapshot::ConstSharedPtr message) {
                 if (message->width <= 0 || message->height <= 0) {
                     return;
@@ -41,11 +37,12 @@ namespace {
                     auto& output = snapshot.cells.emplace_back();
                     if (cell.occupant_id != 0) {
                         output.occupant = cell.occupant_id;
+                        output.occupant_type = static_cast<ObjectType>(cell.occupant_type);
                     }
                     output.trail_robot_ids.assign(
                         cell.trail_robot_ids.begin(), cell.trail_robot_ids.end());
                 }
-                renderer_.draw_frame(snapshot, &RendererNode::robot_occupant_type, "[Ctrl+C to quit]");
+                renderer_.draw_frame(snapshot, "[Ctrl+C to quit]");
             }
 
             Renderer renderer_;
@@ -59,6 +56,12 @@ int main(int argc, char* argv[]) {
     try {
         const auto node = std::make_shared<RendererNode>();
         Terminal terminal;
+
+        if (has_colors()) {
+            start_color();
+            init_pair(1, COLOR_GREEN, COLOR_BLACK);
+        }
+
         rclcpp::spin(node);
     } catch (const std::exception&) {
         exit_code = 1;

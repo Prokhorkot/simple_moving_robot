@@ -16,7 +16,7 @@ Registration uses the `/playground/register_robot` service. Movement commands us
 
 ### Requirements
 
-- **ROS 2 Lyrical Luth**. This project was tested with Lyrical on Ubuntu 26.04 LTS.
+- **ROS 2**. Use Lyrical Luth on Ubuntu 26.04 LTS or Humble Hawksbill on Ubuntu 22.04 LTS.
 - **C++20**. Use a compiler that supports C++20. The project's CMake configuration selects this standard automatically.
 - CMake 3.20 or newer, `colcon`, the ROS 2 C++ and interface-generation tools, and the ncurses development headers (`libncurses-dev` on Ubuntu).
 
@@ -31,6 +31,25 @@ colcon build --paths . --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 ```
 
 Use the corresponding `setup.zsh` script instead if you use Zsh. The explicit Python path keeps ROS interface generation on the system interpreter when a different Python is active.
+
+### Linux (Ubuntu 22.04 LTS)
+
+Use ROS 2 Humble on Ubuntu 22.04 (Jammy). If your host runs a newer Ubuntu release, build in an Ubuntu 22.04 container or VM.
+
+Follow **Setup Sources** in the [ROS 2 Humble installation guide](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html) to configure the ROS apt repository. Then run these commands from the repository root in a shell with no other ROS distribution sourced.
+
+```bash
+sudo apt update
+sudo apt install build-essential cmake python3-colcon-common-extensions \
+  ros-humble-ros-base ros-humble-rosidl-default-generators libncurses-dev
+
+source /opt/ros/humble/setup.bash
+colcon --log-base log-humble build --paths . \
+  --build-base build-humble --install-base install-humble \
+  --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
+```
+
+The separate build directories keep the Humble build apart from other ROS builds. In each terminal you use to run a node, source `/opt/ros/humble/setup.bash` and then `install-humble/local_setup.bash`. Use the corresponding `.zsh` scripts if you use Zsh.
 
 ### Windows (WSL 2)
 
@@ -48,7 +67,7 @@ Run the nodes from Ubuntu terminals inside WSL as well.
 
 ## Run
 
-From the repository root, source `install/setup.bash` in each of three terminals, then run one command per terminal:
+From the repository root, source `install/setup.bash` in each of three terminals, or use the setup scripts above for a Humble build. Then run one command per terminal:
 
 ```bash
 ros2 run moving_robot playground_node
